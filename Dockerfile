@@ -31,11 +31,23 @@ RUN apk add --no-cache \
 ENV CHROME_BIN=/usr/bin/chromium-browser
 ENV CHROME_PATH=/usr/bin/chromium-browser
 
-# Create temp directory
-RUN mkdir -p /tmp/pdf-conversion && chmod 777 /tmp/pdf-conversion
+# Create non-root user for security
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+# Create temp directory and set permissions
+RUN mkdir -p /tmp/pdf-conversion && \
+    chown -R appuser:appgroup /tmp/pdf-conversion && \
+    chmod 755 /tmp/pdf-conversion
 
 # Copy the service binary from build stage
 COPY --from=build-stage /app/pdf-service .
+
+# Change ownership of the binary
+RUN chown appuser:appgroup pdf-service
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8081
